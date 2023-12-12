@@ -8,6 +8,7 @@
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
+#include "DrawDebugHelpers.h"
 #include "EnhancedInputSubsystems.h"
 
 
@@ -65,6 +66,26 @@ void AAssignmentCharacter::BeginPlay()
 		}
 	}
 }
+
+void AAssignmentCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	const FVector start = GetActorLocation();
+	const FVector end = GetActorLocation() + (GetActorForwardVector() * 100.f);
+
+	FHitResult HitResult;
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);
+
+	if (GetWorld()->LineTraceSingleByChannel(HitResult, start, end, ECollisionChannel::ECC_GameTraceChannel1, Params))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Wall"));
+	}
+	DrawDebugLine(GetWorld(), start, end, FColor::Red, false, 1.0f, 0, 1.0f);
+}
+
+
 
 //////////////////////////////////////////////////////////////////////////
 // Input
