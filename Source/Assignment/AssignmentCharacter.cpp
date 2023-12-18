@@ -37,6 +37,8 @@ AAssignmentCharacter::AAssignmentCharacter()
 	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
 	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
 
+	auto movement = GetCharacterMovement();
+
 	// Create a camera boom (pulls in towards the player if there is a collision)
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
@@ -71,8 +73,10 @@ void AAssignmentCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	const FVector foot = GetActorLocation() - FVector(0, 0, 90.f);
 	const FVector start = GetActorLocation();
-	const FVector end = GetActorLocation() + (GetActorForwardVector() * 100.f);
+	const FVector end = foot + (GetActorForwardVector() * 45.f);
+	const FVector up = GetActorLocation() + (GetActorUpVector() * 100.f);
 
 	FHitResult HitResult;
 	FCollisionQueryParams Params;
@@ -80,9 +84,24 @@ void AAssignmentCharacter::Tick(float DeltaTime)
 
 	if (GetWorld()->LineTraceSingleByChannel(HitResult, start, end, ECollisionChannel::ECC_GameTraceChannel1, Params))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Wall"));
+		//UE_LOG(LogTemp, Warning, TEXT("Wall"));
+		DrawDebugLine(GetWorld(), foot, end, FColor::Green, false, 1.0f, 0, 1.0f);
+		detectedWall = true;
+		//FVector newVector = GetActorLocation() + FVector(0, 0, 5.0f);
+//SetActorLocation(newVector);
+//UE_LOG(LogTemp, Log, TEXT("z : %f"), GetActorLocation().Z);
 	}
-	DrawDebugLine(GetWorld(), start, end, FColor::Red, false, 1.0f, 0, 1.0f);
+	else
+	{
+		DrawDebugLine(GetWorld(), foot, end, FColor::Red, false, 1.0f, 0, 1.0f);
+		detectedWall = false;
+		//DrawDebugLine(GetWorld(), start, up, FColor::Orange, false, 1.0f, 0, 1.0f);
+		if (ClimbMod) {
+			ClimbMod = false;
+			GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+			GetCharacterMovement()->bOrientRotationToMovement = true;
+		}
+	}
 }
 
 
@@ -105,6 +124,8 @@ void AAssignmentCharacter::SetupPlayerInputComponent(class UInputComponent* Play
 		//Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AAssignmentCharacter::Look);
 
+		//Climbing
+		EnhancedInputComponent->BindAction(ClimbAction, ETriggerEvent::Started, this, &AAssignmentCharacter::Climb);
 	}
 
 }
@@ -116,19 +137,34 @@ void AAssignmentCharacter::Move(const FInputActionValue& Value)
 
 	if (Controller != nullptr)
 	{
-		// find out which way is forward
-		const FRotator Rotation = Controller->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
+			// find out which way is forward
+			const FRotator Rotation = Controller->GetControlRotation();
+			const FRotator YawRotation(0, Rotation.Yaw, 0);
+		if (!ClimbMod)
+		{
 
-		// get forward vector
-		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-	
-		// get right vector 
-		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+			// get forward vector
+			const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 
-		// add movement 
-		AddMovementInput(ForwardDirection, MovementVector.Y);
-		AddMovementInput(RightDirection, MovementVector.X);
+			// get right vector 
+			const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+
+			// add movement 
+			AddMovementInput(ForwardDirection, MovementVector.Y);
+			AddMovementInput(RightDirection, MovementVector.X);
+		}
+		else if (ClimbMod)
+		{
+			// get forward vector
+			const FVector UpDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Z);
+
+			// get right vector 
+			const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+
+			// add movement 
+			AddMovementInput(UpDirection, (MovementVector.Y)*0.3);
+			AddMovementInput(RightDirection, (MovementVector.X)*0.3);
+		}
 	}
 }
 
@@ -145,6 +181,23 @@ void AAssignmentCharacter::Look(const FInputActionValue& Value)
 	}
 }
 
-
-
-
+void AAssignmentCharacter::Climb(const FInputActionValue& Value)
+{
+	if (detectedWall)
+	{
+		if (ClimbMod) //벽타기 해제
+		{
+			ClimbMod = false;
+			GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+			GetCharacterMovement()->bOrientRotationToMovement = true;
+			UE_LOG(LogTemp, Warning, TEXT("FlimbMod Off"));
+		}
+		else //벽타기 시작
+		{
+			ClimbMod = true;
+			GetCharacterMovement()->SetMovementMode(MOVE_Flying);
+			GetCharacterMovement()->bOrientRotationToMovement = false;
+			UE_LOG(LogTemp, Warning, TEXT("FlimbMod On"));
+		}
+	}
+}
