@@ -87,9 +87,6 @@ void AAssignmentCharacter::Tick(float DeltaTime)
 		//UE_LOG(LogTemp, Warning, TEXT("Wall"));
 		DrawDebugLine(GetWorld(), foot, end, FColor::Green, false, 1.0f, 0, 1.0f);
 		detectedWall = true;
-		//FVector newVector = GetActorLocation() + FVector(0, 0, 5.0f);
-//SetActorLocation(newVector);
-//UE_LOG(LogTemp, Log, TEXT("z : %f"), GetActorLocation().Z);
 	}
 	else
 	{
@@ -100,6 +97,7 @@ void AAssignmentCharacter::Tick(float DeltaTime)
 			ClimbMod = false;
 			GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 			GetCharacterMovement()->bOrientRotationToMovement = true;
+			UE_LOG(LogTemp, Warning, TEXT("FlimbMod Off"));
 		}
 	}
 }
@@ -126,6 +124,9 @@ void AAssignmentCharacter::SetupPlayerInputComponent(class UInputComponent* Play
 
 		//Climbing
 		EnhancedInputComponent->BindAction(ClimbAction, ETriggerEvent::Started, this, &AAssignmentCharacter::Climb);
+
+		//WallJump
+		EnhancedInputComponent->BindAction(WallJumpAction, ETriggerEvent::Started, this, &AAssignmentCharacter::WallJump);
 	}
 
 }
@@ -142,7 +143,6 @@ void AAssignmentCharacter::Move(const FInputActionValue& Value)
 			const FRotator YawRotation(0, Rotation.Yaw, 0);
 		if (!ClimbMod)
 		{
-
 			// get forward vector
 			const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 
@@ -199,5 +199,19 @@ void AAssignmentCharacter::Climb(const FInputActionValue& Value)
 			GetCharacterMovement()->bOrientRotationToMovement = false;
 			UE_LOG(LogTemp, Warning, TEXT("FlimbMod On"));
 		}
+	}
+}
+
+void AAssignmentCharacter::WallJump(const FInputActionValue& Value)
+{
+	if (ClimbMod) //벽타기 해제
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Wall Jump!"));
+		FVector JumpVector = FVector(-250.f, 0, 650.f);
+		LaunchCharacter(JumpVector, 0, 0);
+		ClimbMod = false;
+		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+		GetCharacterMovement()->bOrientRotationToMovement = true;
+		UE_LOG(LogTemp, Warning, TEXT("FlimbMod Off"));
 	}
 }

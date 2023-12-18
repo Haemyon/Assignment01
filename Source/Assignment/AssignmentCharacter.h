@@ -40,6 +40,9 @@ class AAssignmentCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputAction* ClimbAction;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	class UInputAction* WallJumpAction;
+	
 
 public:
 	AAssignmentCharacter();
@@ -54,6 +57,8 @@ protected:
 	void Look(const FInputActionValue& Value);
 
 	void Climb(const FInputActionValue& Value);
+
+	void WallJump(const FInputActionValue& Value);
 
 	//캐릭터가 벽에 붙어있는지 확인
 	bool detectedWall = false;
